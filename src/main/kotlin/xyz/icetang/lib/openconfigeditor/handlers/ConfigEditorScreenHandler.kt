@@ -199,17 +199,21 @@ object ConfigEditorScreenHandler {
 
                                 ChatInputUtil.getChatInput(player, Component.text("Enter new value for $key")) {
                                     if (it != null) {
-                                        val newValue = wrapTypeWith(it, originalValue)
+                                        try {
+                                            val newValue = wrapTypeWith(it, originalValue)
 
-                                        if (newValue == originalValue) {
-                                            changeLog.remove(fullPath)
-                                        } else {
-                                            changeLog[fullPath] = originalValue to newValue
+                                            if (newValue == originalValue) {
+                                                changeLog.remove(fullPath)
+                                            } else {
+                                                changeLog[fullPath] = originalValue to newValue
+                                            }
+
+                                            section.set(key, newValue)
+
+                                            this.refresh()
+                                        } catch (e: Exception) {
+                                            player.sendMessage(Component.text("Invalid value!").color(NamedTextColor.RED))
                                         }
-
-                                        section.set(key, newValue)
-
-                                        this.refresh()
                                     }
 
                                     player.openFrame(this@frame)
