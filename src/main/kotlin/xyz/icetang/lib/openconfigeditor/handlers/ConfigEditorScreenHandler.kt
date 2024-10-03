@@ -4,6 +4,7 @@ import io.github.monun.invfx.InvFX
 import io.github.monun.invfx.frame.InvFrame
 import io.github.monun.invfx.openFrame
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
@@ -14,16 +15,28 @@ import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.Plugin
+import xyz.icetang.lib.openconfigeditor.OpenConfigEditor
 import xyz.icetang.lib.utils.ChatInputUtil
 import java.io.File
+import java.nio.file.Files
 
 object ConfigEditorScreenHandler {
     fun openScreen(player: Player) {
-        player.openFrame(createFrame())
+        Bukkit.getScheduler().runTaskAsynchronously(OpenConfigEditor.INSTANCE, Runnable {
+            val frame = createFrame()
+
+            Bukkit.getScheduler().runTask(OpenConfigEditor.INSTANCE, Runnable {
+                player.openFrame(frame)
+            })
+        })
     }
 
     private fun createFrame(): InvFrame {
         val plugins = Bukkit.getPluginManager().plugins.toMutableList()
+
+        plugins.filter {
+            it.dataFolder.exists() && File(it.dataFolder, "config.yml").exists()
+        }
 
         return InvFX.frame(6, Component.text("Edit config")) {
             for (x in 0..8) {
@@ -46,16 +59,23 @@ object ConfigEditorScreenHandler {
                                 it.displayName(Component.text(plugin.name)
                                     .color(NamedTextColor.WHITE)
                                     .decoration(TextDecoration.ITALIC, false))
-                                it.lore(listOf(Component.text("Click to edit config").color(NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false)))
+                                it.lore(listOf(
+                                    Component.text("Left click to edit config.yml").color(NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false),
+                                    Component.text("Right click to open data folder").color(NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false)
+                                ))
                             }
                         }
                 }
 
-                onClickItem { x, y, item, event ->
+                onClickItem { x, y, _, event ->
                     val plugin = plugins.getOrNull(page.toInt() * 36 + y * 9 + x)
 
                     if (plugin != null) {
-                        openPluginConfigScreen(plugin, event.whoClicked as Player)
+                        if (event.isLeftClick) {
+                            openPluginConfigScreen(plugin, event.whoClicked as Player)
+                        } else if (event.isRightClick) {
+                            openDataFolder(plugin, event.whoClicked as Player)
+                        }
                     }
                 }
             }
@@ -92,6 +112,113 @@ object ConfigEditorScreenHandler {
                 }
             }
         }
+    }
+
+    private fun openDataFolder(plugin: Plugin, player: Player, folder: File? = null) {
+        player.sendMessage(Component.text("Opening data folder for ${plugin.name}..."))
+
+        val dataFolder = folder ?: plugin.dataFolder
+
+        if (!dataFolder.exists()) {
+            player.sendMessage(
+                Component.text("Data folder for ${plugin.name} does not exist!").color(NamedTextColor.RED)
+            )
+
+            return
+        }
+
+        val isRoot = dataFolder.absolutePath == plugin.dataFolder.absolutePath
+
+        val paths = listOfNotNull(
+            if (isRoot) null else "..",
+            *Files.list(dataFolder.toPath())
+                .map { it.toFile() }
+                .filter { it.extension == "yml" || it.isDirectory }
+                .map { it.absolutePath }
+                .toList()
+                .toTypedArray()
+        )
+
+        val frame = InvFX.frame(6, Component.text("Data folder for ${plugin.name}")) {
+            for (x in 0..8) {
+                val lineItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE)
+                    .apply {
+                        editMeta {
+                            it.displayName(Component.text(""))
+                        }
+                    }
+
+                item(x, 0, lineItem)
+                item(x, 5, lineItem)
+            }
+
+            val fileList = list(0, 1, 8, 4, true, { paths }) {
+                transform { path ->
+                    val file = File(if (path == "..") dataFolder.parentFile.absolutePath else path)
+
+                    ItemStack(if (path == "..") Material.FEATHER else if (file.isDirectory) Material.CHEST else Material.PAPER)
+                        .apply {
+                            editMeta {
+                                it.displayName(
+                                    Component.text(if (this.type == Material.FEATHER) ".." else file.name)
+                                        .color(NamedTextColor.WHITE)
+                                        .decoration(TextDecoration.ITALIC, false)
+                                )
+                                it.lore(
+                                    listOf(
+                                        Component.text(if (this.type == Material.FEATHER) "Click to go to parent directory" else "Click to open").color(NamedTextColor.YELLOW)
+                                            .decoration(TextDecoration.ITALIC, false)
+                                    )
+                                )
+                            }
+                        }
+                }
+
+                onClickItem { _, _, item, _ ->
+                    val file = File(if (item.first == "..") dataFolder.parentFile.absolutePath else item.first)
+
+                    if (file.isDirectory) {
+                        openDataFolder(plugin, player, file)
+                    } else {
+                        openPluginConfigScreen(plugin, player, "@root", null, file)
+                    }
+                }
+            }
+
+            slot(0, 5) {
+                item = ItemStack(Material.ARROW)
+                    .apply {
+                        editMeta {
+                            it.displayName(Component.text("Back")
+                                .color(NamedTextColor.WHITE)
+                                .decoration(TextDecoration.ITALIC, false))
+                        }
+                    }
+
+                onClick {
+                    fileList.page -= 1
+                    fileList.refresh()
+                }
+            }
+
+            slot(8, 5) {
+                item = ItemStack(Material.ARROW)
+                    .apply {
+                        editMeta {
+                            it.displayName(Component.text("Next")
+                                .color(NamedTextColor.WHITE)
+                                .decoration(TextDecoration.ITALIC, false))
+                        }
+                    }
+
+                onClick {
+                    fileList.page += 1
+                    fileList.refresh()
+                }
+            }
+        }
+
+        player.openFrame(frame)
     }
 
     private fun openPluginConfigScreen(plugin: Plugin, player: Player, sectionPath: String = "@root", root: YamlConfiguration? = null, file: File? = null, changeLog: MutableMap<String, Pair<Any, Any>> = mutableMapOf()) {
@@ -135,7 +262,7 @@ object ConfigEditorScreenHandler {
                 transform { key ->
                     // left click to edit, right click to restore
                     if (key == "..") {
-                        ItemStack(Material.BARRIER)
+                        ItemStack(Material.FEATHER)
                             .apply {
                                 editMeta {
                                     it.displayName(Component.text("..")
@@ -177,8 +304,8 @@ object ConfigEditorScreenHandler {
                     }
                 }
 
-                onClickItem { x, y, item, event ->
-                    val key = keys[page.toInt() * 36 + y * 9 + x]
+                onClickItem { _, _, item, event ->
+                    val key = item.first
 
                     if (key == "..") {
                         val parentPath = section.currentPath!!.split(".").dropLast(1).joinToString(".")
@@ -197,7 +324,15 @@ object ConfigEditorScreenHandler {
                             if (event.isLeftClick) {
                                 player.closeInventory()
 
-                                ChatInputUtil.getChatInput(player, Component.text("Enter new value for $key")) {
+                                ChatInputUtil.getChatInput(
+                                    player,
+                                    Component.text("Enter new value for $key.")
+                                        .appendNewline()
+                                        .append(Component.text("[Click to copy current value]", NamedTextColor.GREEN)
+                                            .decoration(TextDecoration.ITALIC, false)
+                                            .clickEvent(ClickEvent.copyToClipboard(originalValue.toString()))
+                                        )
+                                ) {
                                     if (it != null) {
                                         try {
                                             val newValue = wrapTypeWith(it, originalValue)
