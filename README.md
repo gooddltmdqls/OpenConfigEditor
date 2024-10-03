@@ -1,5 +1,11 @@
 # OpenConfigEditor
-An easy way to edit plugin configuration without opening the configuration file.  
+An easy way to edit plugin configuration in game.
+
+## Features
+* Ingame yaml config editor
+* Convenient GUI editor
+* Internal type wrapper
+* Can open other configuration file (like messages.yml)
 
 ## How to use
 1. Download the plugin.
