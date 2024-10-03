@@ -16,9 +16,7 @@ object ChatInputUtil {
     fun getChatInput(player: Player, message: Component, callback: (String?) -> Unit) {
         player.sendMessage(message)
         player.sendMessage(Component.text("Type \'+cancel\' to cancel.", NamedTextColor.YELLOW))
-
         var task: BukkitTask? = null
-
         val listener = object : Listener {
             @EventHandler
             fun onChat(event: AsyncChatEvent) {
@@ -27,7 +25,6 @@ object ChatInputUtil {
                 }
 
                 event.isCancelled = true
-
                 val content = (event.message() as TextComponent).content()
 
                 if (content == "+cancel") {
@@ -48,7 +45,6 @@ object ChatInputUtil {
         }
 
         Bukkit.getPluginManager().registerEvents(listener, OpenConfigEditor.INSTANCE)
-
         // If 30 seconds passed, unregister listener
         task = Bukkit.getScheduler().runTaskLater(OpenConfigEditor.INSTANCE, Runnable {
             HandlerList.unregisterAll(listener)

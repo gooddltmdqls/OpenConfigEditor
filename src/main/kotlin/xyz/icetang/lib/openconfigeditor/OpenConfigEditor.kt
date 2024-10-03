@@ -4,8 +4,8 @@ import net.kyori.adventure.text.Component
 import org.bukkit.entity.Player
 import org.bukkit.permissions.Permission
 import org.bukkit.permissions.PermissionDefault
-import xyz.icetang.lib.icemmand.icemmand
 import org.bukkit.plugin.java.JavaPlugin
+import xyz.icetang.lib.icemmand.icemmand
 import xyz.icetang.lib.openconfigeditor.handlers.ConfigEditorScreenHandler
 
 class OpenConfigEditor : JavaPlugin() {

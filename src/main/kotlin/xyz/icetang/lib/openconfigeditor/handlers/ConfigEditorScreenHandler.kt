@@ -33,10 +33,9 @@ object ConfigEditorScreenHandler {
 
     private fun createFrame(): InvFrame {
         val plugins = Bukkit.getPluginManager().plugins.toMutableList()
-
-        plugins.filter {
-            it.dataFolder.exists() && File(it.dataFolder, "config.yml").exists()
-        }
+            .filter {
+                it.dataFolder.exists()
+            }
 
         return InvFX.frame(6, Component.text("Edit config")) {
             for (x in 0..8) {
@@ -50,19 +49,24 @@ object ConfigEditorScreenHandler {
                 item(x, 0, lineItem)
                 item(x, 5, lineItem)
             }
-
             val pluginList = list(0, 1, 8, 4, true, { plugins }) {
                 transform { plugin ->
                     ItemStack(Material.PAPER)
                         .apply {
                             editMeta {
-                                it.displayName(Component.text(plugin.name)
-                                    .color(NamedTextColor.WHITE)
-                                    .decoration(TextDecoration.ITALIC, false))
-                                it.lore(listOf(
-                                    Component.text("Left click to edit config.yml").color(NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false),
-                                    Component.text("Right click to open data folder").color(NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false)
-                                ))
+                                it.displayName(
+                                    Component.text(plugin.name)
+                                        .color(NamedTextColor.WHITE)
+                                        .decoration(TextDecoration.ITALIC, false)
+                                )
+                                it.lore(
+                                    listOf(
+                                        Component.text("Left click to edit config.yml").color(NamedTextColor.YELLOW)
+                                            .decoration(TextDecoration.ITALIC, false),
+                                        Component.text("Right click to open data folder").color(NamedTextColor.YELLOW)
+                                            .decoration(TextDecoration.ITALIC, false)
+                                    )
+                                )
                             }
                         }
                 }
@@ -84,9 +88,11 @@ object ConfigEditorScreenHandler {
                 item = ItemStack(Material.ARROW)
                     .apply {
                         editMeta {
-                            it.displayName(Component.text("Back")
-                                .color(NamedTextColor.WHITE)
-                                .decoration(TextDecoration.ITALIC, false))
+                            it.displayName(
+                                Component.text("Back")
+                                    .color(NamedTextColor.WHITE)
+                                    .decoration(TextDecoration.ITALIC, false)
+                            )
                         }
                     }
 
@@ -100,9 +106,11 @@ object ConfigEditorScreenHandler {
                 item = ItemStack(Material.ARROW)
                     .apply {
                         editMeta {
-                            it.displayName(Component.text("Next")
-                                .color(NamedTextColor.WHITE)
-                                .decoration(TextDecoration.ITALIC, false))
+                            it.displayName(
+                                Component.text("Next")
+                                    .color(NamedTextColor.WHITE)
+                                    .decoration(TextDecoration.ITALIC, false)
+                            )
                         }
                     }
 
@@ -116,7 +124,6 @@ object ConfigEditorScreenHandler {
 
     private fun openDataFolder(plugin: Plugin, player: Player, folder: File? = null) {
         player.sendMessage(Component.text("Opening data folder for ${plugin.name}..."))
-
         val dataFolder = folder ?: plugin.dataFolder
 
         if (!dataFolder.exists()) {
@@ -126,19 +133,15 @@ object ConfigEditorScreenHandler {
 
             return
         }
-
         val isRoot = dataFolder.absolutePath == plugin.dataFolder.absolutePath
-
+        val filesInDir =
+            Files.list(dataFolder.toPath()).map { it.toFile() }.filter { it.extension == "yml" || it.isDirectory }.toList()
+        val folders = filesInDir.filter { it.isDirectory }.map { it.absolutePath }.sorted().toTypedArray()
+        val files =
+            filesInDir.filter { it.extension == "yml" }.map { it.absolutePath }.sorted().toTypedArray()
         val paths = listOfNotNull(
-            if (isRoot) null else "..",
-            *Files.list(dataFolder.toPath())
-                .map { it.toFile() }
-                .filter { it.extension == "yml" || it.isDirectory }
-                .map { it.absolutePath }
-                .toList()
-                .toTypedArray()
+            if (isRoot) null else "..", *folders, *files
         )
-
         val frame = InvFX.frame(6, Component.text("Data folder for ${plugin.name}")) {
             for (x in 0..8) {
                 val lineItem = ItemStack(Material.BLACK_STAINED_GLASS_PANE)
@@ -150,6 +153,23 @@ object ConfigEditorScreenHandler {
 
                 item(x, 0, lineItem)
                 item(x, 5, lineItem)
+            }
+
+            slot(8, 0) {
+                item = ItemStack(Material.RED_STAINED_GLASS_PANE)
+                    .apply {
+                        editMeta {
+                            it.displayName(
+                                Component.text("Go back to plugin list")
+                                    .color(NamedTextColor.WHITE)
+                                    .decoration(TextDecoration.ITALIC, false)
+                            )
+                        }
+                    }
+
+                onClick {
+                    openScreen(player)
+                }
             }
 
             val fileList = list(0, 1, 8, 4, true, { paths }) {
@@ -166,7 +186,8 @@ object ConfigEditorScreenHandler {
                                 )
                                 it.lore(
                                     listOf(
-                                        Component.text(if (this.type == Material.FEATHER) "Click to go to parent directory" else "Click to open").color(NamedTextColor.YELLOW)
+                                        Component.text(if (this.type == Material.FEATHER) "Click to go to parent directory" else "Click to open")
+                                            .color(NamedTextColor.YELLOW)
                                             .decoration(TextDecoration.ITALIC, false)
                                     )
                                 )
@@ -180,7 +201,7 @@ object ConfigEditorScreenHandler {
                     if (file.isDirectory) {
                         openDataFolder(plugin, player, file)
                     } else {
-                        openPluginConfigScreen(plugin, player, "@root", null, file)
+                        openPluginConfigScreen(plugin, player, "@root", null, file, mutableMapOf(), true)
                     }
                 }
             }
@@ -189,9 +210,11 @@ object ConfigEditorScreenHandler {
                 item = ItemStack(Material.ARROW)
                     .apply {
                         editMeta {
-                            it.displayName(Component.text("Back")
-                                .color(NamedTextColor.WHITE)
-                                .decoration(TextDecoration.ITALIC, false))
+                            it.displayName(
+                                Component.text("Back")
+                                    .color(NamedTextColor.WHITE)
+                                    .decoration(TextDecoration.ITALIC, false)
+                            )
                         }
                     }
 
@@ -205,9 +228,11 @@ object ConfigEditorScreenHandler {
                 item = ItemStack(Material.ARROW)
                     .apply {
                         editMeta {
-                            it.displayName(Component.text("Next")
-                                .color(NamedTextColor.WHITE)
-                                .decoration(TextDecoration.ITALIC, false))
+                            it.displayName(
+                                Component.text("Next")
+                                    .color(NamedTextColor.WHITE)
+                                    .decoration(TextDecoration.ITALIC, false)
+                            )
                         }
                     }
 
@@ -221,9 +246,16 @@ object ConfigEditorScreenHandler {
         player.openFrame(frame)
     }
 
-    private fun openPluginConfigScreen(plugin: Plugin, player: Player, sectionPath: String = "@root", root: YamlConfiguration? = null, file: File? = null, changeLog: MutableMap<String, Pair<Any, Any>> = mutableMapOf()) {
+    private fun openPluginConfigScreen(
+        plugin: Plugin,
+        player: Player,
+        sectionPath: String = "@root",
+        root: YamlConfiguration? = null,
+        file: File? = null,
+        changeLog: MutableMap<String, Pair<Any, Any>> = mutableMapOf(),
+        fromDataFolderScreen: Boolean = false
+    ) {
         val miniMessage = MiniMessage.miniMessage()
-
         val configFile = file ?: File(plugin.dataFolder, "config.yml")
 
         if (!configFile.exists()) {
@@ -233,17 +265,16 @@ object ConfigEditorScreenHandler {
 
             return
         }
-
         val config =
             root ?: YamlConfiguration.loadConfiguration(configFile)
-
         var section: ConfigurationSection = config
 
         if (sectionPath != "@root") {
             section = config.getConfigurationSection(sectionPath)!!
         }
-
-        val keys = listOfNotNull(if (sectionPath != "@root") ".." else null, *section.getKeys(false).toTypedArray())
+        val maps = section.getKeys(false).filter { section.get(it) is ConfigurationSection }.sorted().toTypedArray()
+        val values = section.getKeys(false).filter { section.get(it) !is ConfigurationSection }.sorted().toTypedArray()
+        val keys = listOfNotNull(if (sectionPath != "@root") ".." else null, *maps, *values)
 
         player.openFrame(InvFX.frame(6, Component.text("Edit config for ${plugin.name}")) {
             for (x in 0..8) {
@@ -258,6 +289,27 @@ object ConfigEditorScreenHandler {
                 item(x, 5, lineItem)
             }
 
+            slot(8, 0) {
+                item = ItemStack(Material.RED_STAINED_GLASS_PANE)
+                    .apply {
+                        editMeta {
+                            it.displayName(
+                                Component.text("Go back to ${if (fromDataFolderScreen) "data folder" else "plugin list"}")
+                                    .color(NamedTextColor.WHITE)
+                                    .decoration(TextDecoration.ITALIC, false)
+                            )
+                        }
+                    }
+
+                onClick {
+                    if (fromDataFolderScreen) {
+                        openDataFolder(plugin, player, file?.parentFile)
+                    } else {
+                        openScreen(player)
+                    }
+                }
+            }
+
             val configList = list(0, 1, 8, 4, true, { keys }) {
                 transform { key ->
                     // left click to edit, right click to restore
@@ -265,27 +317,39 @@ object ConfigEditorScreenHandler {
                         ItemStack(Material.FEATHER)
                             .apply {
                                 editMeta {
-                                    it.displayName(Component.text("..")
-                                        .color(NamedTextColor.WHITE)
-                                        .decoration(TextDecoration.ITALIC, false))
-                                    it.lore(listOf(Component.text("Click to go to parent section").color(NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false)))
+                                    it.displayName(
+                                        Component.text("..")
+                                            .color(NamedTextColor.WHITE)
+                                            .decoration(TextDecoration.ITALIC, false)
+                                    )
+                                    it.lore(
+                                        listOf(
+                                            Component.text("Click to go to parent section").color(NamedTextColor.YELLOW)
+                                                .decoration(TextDecoration.ITALIC, false)
+                                        )
+                                    )
                                 }
                             }
                     } else {
-                        val fullPath = listOfNotNull(if (sectionPath == "@root") null else sectionPath, key).joinToString(".")
-
+                        val fullPath =
+                            listOfNotNull(if (sectionPath == "@root") null else sectionPath, key).joinToString(".")
                         val value = section.get(key)
-
                         val editedBefore = changeLog.containsKey(fullPath)
-
-                        val displayName = miniMessage.deserialize("<reset>${if (editedBefore) "<yellow>" else "<white>"}$key${if (editedBefore) "*" else ""}").decoration(TextDecoration.ITALIC, editedBefore)
+                        val displayName =
+                            miniMessage.deserialize("<reset>${if (editedBefore) "<yellow>" else "<white>"}$key${if (editedBefore) "*" else ""}")
+                                .decoration(TextDecoration.ITALIC, editedBefore)
 
                         if (value is ConfigurationSection) {
                             ItemStack(Material.CHEST)
                                 .apply {
                                     editMeta {
                                         it.displayName(displayName)
-                                        it.lore(listOf(Component.text("Click to open").color(NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false)))
+                                        it.lore(
+                                            listOf(
+                                                Component.text("Click to open").color(NamedTextColor.YELLOW)
+                                                    .decoration(TextDecoration.ITALIC, false)
+                                            )
+                                        )
                                     }
                                 }
                         } else {
@@ -293,11 +357,16 @@ object ConfigEditorScreenHandler {
                                 .apply {
                                     editMeta {
                                         it.displayName(displayName)
-                                        it.lore(listOf(
-                                            miniMessage.deserialize("<green>Current value: <white>${value}").decoration(TextDecoration.ITALIC, false),
-                                            Component.text("Left click to edit").color(NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false),
-                                            Component.text("Right click to restore").color(NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false)
-                                        ))
+                                        it.lore(
+                                            listOf(
+                                                miniMessage.deserialize("<green>Current value: <white>${value}")
+                                                    .decoration(TextDecoration.ITALIC, false),
+                                                Component.text("Left click to edit").color(NamedTextColor.YELLOW)
+                                                    .decoration(TextDecoration.ITALIC, false),
+                                                Component.text("Right click to restore").color(NamedTextColor.YELLOW)
+                                                    .decoration(TextDecoration.ITALIC, false)
+                                            )
+                                        )
                                     }
                                 }
                         }
@@ -310,10 +379,18 @@ object ConfigEditorScreenHandler {
                     if (key == "..") {
                         val parentPath = section.currentPath!!.split(".").dropLast(1).joinToString(".")
 
-                        openPluginConfigScreen(plugin, player, parentPath.ifEmpty { "@root" }, config, configFile, changeLog)
+                        openPluginConfigScreen(
+                            plugin,
+                            player,
+                            parentPath.ifEmpty { "@root" },
+                            config,
+                            configFile,
+                            changeLog,
+                            fromDataFolderScreen
+                        )
                     } else {
-                        val fullPath = listOfNotNull(if (sectionPath == "@root") null else sectionPath, key).joinToString(".")
-
+                        val fullPath =
+                            listOfNotNull(if (sectionPath == "@root") null else sectionPath, key).joinToString(".")
                         val value = section.get(key)!!
 
                         if (value is ConfigurationSection) {
@@ -322,15 +399,32 @@ object ConfigEditorScreenHandler {
                             val originalValue = changeLog[fullPath]?.first ?: value
 
                             if (event.isLeftClick) {
+                                if (originalValue is Boolean) {
+                                    val newValue = !(value as Boolean)
+
+                                    if (newValue == originalValue) {
+                                        changeLog.remove(fullPath)
+                                    } else {
+                                        changeLog[fullPath] = originalValue to newValue
+                                    }
+
+                                    section.set(key, newValue)
+
+                                    this.refresh()
+
+                                    return@onClickItem
+                                }
+
                                 player.closeInventory()
 
                                 ChatInputUtil.getChatInput(
                                     player,
                                     Component.text("Enter new value for $key.")
                                         .appendNewline()
-                                        .append(Component.text("[Click to copy current value]", NamedTextColor.GREEN)
-                                            .decoration(TextDecoration.ITALIC, false)
-                                            .clickEvent(ClickEvent.copyToClipboard(originalValue.toString()))
+                                        .append(
+                                            Component.text("[Click to copy current value]", NamedTextColor.GREEN)
+                                                .decoration(TextDecoration.ITALIC, false)
+                                                .clickEvent(ClickEvent.copyToClipboard(originalValue.toString()))
                                         )
                                 ) {
                                     if (it != null) {
@@ -347,7 +441,9 @@ object ConfigEditorScreenHandler {
 
                                             this.refresh()
                                         } catch (e: Exception) {
-                                            player.sendMessage(Component.text("Invalid value!").color(NamedTextColor.RED))
+                                            player.sendMessage(
+                                                Component.text("Invalid value!").color(NamedTextColor.RED)
+                                            )
                                         }
                                     }
 
@@ -366,7 +462,6 @@ object ConfigEditorScreenHandler {
                             }
                         }
                     }
-
                 }
             }
 
@@ -374,9 +469,11 @@ object ConfigEditorScreenHandler {
                 item = ItemStack(Material.ARROW)
                     .apply {
                         editMeta {
-                            it.displayName(Component.text("Back")
-                                .color(NamedTextColor.WHITE)
-                                .decoration(TextDecoration.ITALIC, false))
+                            it.displayName(
+                                Component.text("Back")
+                                    .color(NamedTextColor.WHITE)
+                                    .decoration(TextDecoration.ITALIC, false)
+                            )
                         }
                     }
 
@@ -390,9 +487,11 @@ object ConfigEditorScreenHandler {
                 item = ItemStack(Material.ARROW)
                     .apply {
                         editMeta {
-                            it.displayName(Component.text("Next")
-                                .color(NamedTextColor.WHITE)
-                                .decoration(TextDecoration.ITALIC, false))
+                            it.displayName(
+                                Component.text("Next")
+                                    .color(NamedTextColor.WHITE)
+                                    .decoration(TextDecoration.ITALIC, false)
+                            )
                         }
                     }
 
@@ -406,9 +505,11 @@ object ConfigEditorScreenHandler {
                 item = ItemStack(Material.GREEN_STAINED_GLASS_PANE)
                     .apply {
                         editMeta {
-                            it.displayName(Component.text("Save")
-                                .color(NamedTextColor.WHITE)
-                                .decoration(TextDecoration.ITALIC, false))
+                            it.displayName(
+                                Component.text("Save")
+                                    .color(NamedTextColor.WHITE)
+                                    .decoration(TextDecoration.ITALIC, false)
+                            )
                         }
                     }
 
@@ -416,7 +517,10 @@ object ConfigEditorScreenHandler {
                     config.save(configFile)
 
                     changeLog.forEach {
-                        player.sendMessage(Component.text("${it.key}: ${it.value.first} -> ${it.value.second}").color(NamedTextColor.GREEN))
+                        player.sendMessage(
+                            Component.text("${it.key}: ${it.value.first} -> ${it.value.second}")
+                                .color(NamedTextColor.GREEN)
+                        )
                     }
 
                     changeLog.clear()
@@ -438,7 +542,8 @@ object ConfigEditorScreenHandler {
             is Short -> value.toString().toShort()
             is Byte -> value.toString().toByte()
             is Boolean -> value.toString().toBoolean()
-            is List<*> -> value.toString().replaceFirst("[", "").split("]").dropLast(1).joinToString("]").split(",").joinToString(", ").split(", ").map { wrapTypeWith(it, origin[0]!!) }
+            is List<*> -> value.toString().replaceFirst("[", "").split("]").dropLast(1).joinToString("]").split(",")
+                .joinToString(", ").split(", ").map { wrapTypeWith(it, origin[0]!!) }
             else -> value
         }
     }
