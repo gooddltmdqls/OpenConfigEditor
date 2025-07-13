@@ -1,8 +1,8 @@
 package xyz.icetang.lib.openconfigeditor.handlers
 
-import io.github.monun.invfx.InvFX
-import io.github.monun.invfx.frame.InvFrame
-import io.github.monun.invfx.openFrame
+import xyz.icetang.lib.invfx.InvFX
+import xyz.icetang.lib.invfx.frame.InvFrame
+import xyz.icetang.lib.invfx.openFrame
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.format.NamedTextColor
@@ -19,6 +19,7 @@ import xyz.icetang.lib.openconfigeditor.OpenConfigEditor
 import xyz.icetang.lib.utils.ChatInputUtil
 import java.io.File
 import java.nio.file.Files
+import org.bukkit.configuration.serialization.ConfigurationSerializable
 
 object ConfigEditorScreenHandler {
     fun openScreen(player: Player) {
@@ -265,6 +266,7 @@ object ConfigEditorScreenHandler {
 
             return
         }
+
         val config =
             root ?: YamlConfiguration.loadConfiguration(configFile)
         var section: ConfigurationSection = config
@@ -288,7 +290,6 @@ object ConfigEditorScreenHandler {
                 item(x, 0, lineItem)
                 item(x, 5, lineItem)
             }
-
             slot(8, 0) {
                 item = ItemStack(Material.RED_STAINED_GLASS_PANE)
                     .apply {
@@ -392,6 +393,12 @@ object ConfigEditorScreenHandler {
                         val fullPath =
                             listOfNotNull(if (sectionPath == "@root") null else sectionPath, key).joinToString(".")
                         val value = section.get(key)!!
+
+                        if (value is ConfigurationSerializable) {
+                            player.sendMessage(Component.text("[WARNING] The value of $key is a ConfigurationSerializable object, and can only be edited with a text editor, not OpenConfigEditor.", NamedTextColor.YELLOW))
+
+                            return@onClickItem
+                        }
 
                         if (value is ConfigurationSection) {
                             openPluginConfigScreen(plugin, player, fullPath, config, configFile, changeLog)
