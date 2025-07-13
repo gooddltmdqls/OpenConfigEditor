@@ -5,4 +5,4 @@ main: 'xyz.icetang.lib.openconfigeditor.${pluginName}'
 author: Icetang0123
 libraries:
   - xyz.icetang.lib:icemmand-core:${icemmandVersion}
-  - io.github.monun:invfx-core:3.3.2
+  - xyz.icetang.lib:invfx-core:${invfxVersion}

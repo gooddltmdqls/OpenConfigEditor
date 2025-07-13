@@ -20,7 +20,7 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:${properties["paperApiVersion"]!!}-R0.1-SNAPSHOT")
     compileOnly("xyz.icetang.lib:icemmand-api:${properties["icemmandVersion"]!!}")
-    compileOnly("io.github.monun:invfx-api:3.3.2")
+    compileOnly("xyz.icetang.lib:invfx-api:${properties["invfxVersion"]!!}")
 }
 
 tasks.withType<ProcessResources> {
@@ -28,22 +28,18 @@ tasks.withType<ProcessResources> {
     inputs.property("pluginName", pluginName)
     inputs.property("bukkitApiVersion", properties["bukkitApiVersion"]!!)
     inputs.property("icemmandVersion", properties["icemmandVersion"]!!)
+    inputs.property("invfxVersion", properties["invfxVersion"]!!)
 
     filesMatching("plugin.yml") {
-        expand(mapOf(
-            Pair("version", version),
-            Pair("pluginName", pluginName),
-            Pair("bukkitApiVersion", properties["bukkitApiVersion"]!!),
-            Pair("icemmandVersion", properties["icemmandVersion"]!!)
-        ))
+        expand(inputs.properties)
     }
 }
 
 tasks.withType<RunServer> {
-    minecraftVersion(properties["paperApiVersion"]!! as String)
+    minecraftVersion("1.21.7")
 
-    minHeapSize = "1536M"
-    maxHeapSize = "1536M"
+    minHeapSize = "8192M"
+    maxHeapSize = "8192M"
 }
 
 tasks.withType<KotlinCompile> {
